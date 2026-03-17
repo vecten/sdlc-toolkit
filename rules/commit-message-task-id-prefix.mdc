@@ -1,0 +1,11 @@
+---
+description: Require task ID prefix in commit messages
+alwaysApply: true
+---
+
+# Commit Message Task ID Prefix
+
+- Prefix every commit message with a task ID.
+- Use the format `<TASK-ID>: <message>`.
+- Example: `{{TICKET_PREFIX}}-127: avoid updating updated_at during revalidation claim`.
+- Do not create commits without a task ID prefix unless the user explicitly asks for an exception.
