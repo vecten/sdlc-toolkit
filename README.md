@@ -23,6 +23,7 @@ npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install sk
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill finish-release
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill debug-sentry
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-priorities
+npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-timeline
 ```
 
 ## Getting started
@@ -47,6 +48,7 @@ This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and 
 | `finish-release` | Move released tickets to Done and draft a client-facing release email. |
 | `debug-sentry` | Investigate a Sentry issue, diagnose root cause, create a ticket, then hand off to `start-task` and `finish-task`. |
 | `manage-priorities` | Manage a priorities tracker in the configured knowledge base with Table/Board views, status cards, and detail subpages. |
+| `manage-timeline` | Scan PM tool projects, detect schedule slippage, and cascade date adjustments across a sequential or multi-developer timeline. |
 | `generate-skill` | Scaffold a new sdlc-toolkit skill with config awareness, proper structure, and consistency with existing skills. |
 
 Also includes:
@@ -69,7 +71,7 @@ create-ticket -->  start-task  -->  (implementation)  -->  finish-task
 
 | MCP Server | Config key | Used by |
 |------------|-----------|---------|
-| Linear | `pm_tool: linear` | `create-ticket`, `start-task`, `finish-task`, `create-release`, `finish-release`, `debug-sentry` |
+| Linear | `pm_tool: linear` | `create-ticket`, `start-task`, `finish-task`, `create-release`, `finish-release`, `debug-sentry`, `manage-timeline` |
 | Sentry | `error_tracking_tool: sentry` | `debug-sentry` |
 | Slack | — | `finish-task`, `create-release`, `finish-release` |
 | Notion | `knowledge_base_tool: notion` | `manage-priorities` |
@@ -87,6 +89,7 @@ Key sections:
 - **slack** — channels, reviewers with Slack IDs, notification toggles
 - **testing** — runner type (docker/host/ci-only), per-repo commands
 - **notion** — priority statuses, cached database ID (used when `knowledge_base_tool: notion`)
+- **timeline** — developer capacity, execution order, parallel groups, ongoing projects (used by `manage-timeline`)
 - **release_email** — greeting, sign-off, and custom instructions
 
 Each section includes a `custom_input` area for free-form, repo-specific instructions that skills incorporate as context.
@@ -103,6 +106,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | `finish-release` | `finish release`, `close release`, `release deployed` |
 | `debug-sentry` | `debug sentry <url>`, `fix sentry issue <url>`, `investigate this Sentry issue` |
 | `manage-priorities` | `manage top priorities`, `update priorities board`, `bootstrap priorities tracker` |
+| `manage-timeline` | `manage timeline`, `update timeline`, `check timeline`, `are we on track` |
 | `generate-skill` | `create a new skill`, `generate skill for this workflow`, `add a skill to sdlc-toolkit` |
 
 ## References

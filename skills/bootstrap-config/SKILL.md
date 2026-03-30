@@ -103,6 +103,14 @@ Ask structured questions for:
 - Commit prefix pattern (default: `<TICKET_ID>: <message>`)
 - Any custom git conventions? (free text -> `custom_input`)
 
+**Timeline** (optional — skip if the user does not use `manage-timeline`):
+- Developer count (default: 1)
+- Scheduling mode: sequential, parallel, or custom? (default: sequential)
+- Which projects are ongoing and should never be auto-dated?
+- Execution order of remaining projects
+- Any parallel groups?
+- Any projects that should have no target date?
+
 For each section, present sensible defaults and ask for confirmation.
 
 ### Step 7 — Update mode (existing config)

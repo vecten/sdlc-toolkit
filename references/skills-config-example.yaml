@@ -122,3 +122,19 @@ release_email:
     # subject_pattern: "Release Update — {date}"
     # recipients: "client-team@example.com"
     # Include internal changes: false
+
+# --- Timeline ---
+# Used by manage-timeline to keep project dates current.
+# Optional — the skill will offer to bootstrap this section if missing.
+timeline:
+  developers: 1                              # team capacity; drives scheduling
+  scheduling: "sequential"                   # "sequential" | "parallel" | "custom"
+  ongoing_projects: []                       # project names that never get auto-scheduled dates
+  execution_order:                           # ordered list of project names; top = current
+    - "My Project"
+  parallel_groups: []                        # groups of projects that share a lane and overlap
+  no_target_date: []                         # project names to skip when auto-dating
+  custom_input: |
+    # Additional scheduling rules. Examples:
+    # - Always keep 1-week buffer between projects
+    # - Holidays: skip 2026-12-24 to 2027-01-01
