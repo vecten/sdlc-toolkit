@@ -49,6 +49,7 @@ This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and 
 | `debug-sentry` | Investigate a Sentry issue, diagnose root cause, create a ticket, then hand off to `start-task` and `finish-task`. |
 | `manage-priorities` | Manage a priorities tracker in the configured knowledge base with Table/Board views, status cards, and detail subpages. |
 | `manage-timeline` | Scan PM tool projects, detect schedule slippage, and cascade date adjustments across a sequential or multi-developer timeline. |
+| `migrate-cursor` | Migrate workspace configuration, local skills, and rules from Cursor to Claude Code. Two-phase: export in Cursor, import in Claude Code. |
 | `generate-skill` | Scaffold a new sdlc-toolkit skill with config awareness, proper structure, and consistency with existing skills. |
 
 Also includes:
@@ -62,9 +63,10 @@ Also includes:
 Skills chain together for complex workflows:
 
 ```
-debug-sentry  -->  start-task  -->  (implementation)  -->  finish-task
-create-ticket -->  start-task  -->  (implementation)  -->  finish-task
-                   create-release  -->  (deployment)  -->  finish-release
+debug-sentry    -->  start-task  -->  (implementation)  -->  finish-task
+create-ticket   -->  start-task  -->  (implementation)  -->  finish-task
+                     create-release  -->  (deployment)  -->  finish-release
+migrate-cursor  -->  bootstrap-config  (verify/update migrated config)
 ```
 
 ## MCP integrations
@@ -107,6 +109,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | `debug-sentry` | `debug sentry <url>`, `fix sentry issue <url>`, `investigate this Sentry issue` |
 | `manage-priorities` | `manage top priorities`, `update priorities board`, `bootstrap priorities tracker` |
 | `manage-timeline` | `manage timeline`, `update timeline`, `check timeline`, `are we on track` |
+| `migrate-cursor` | `migrate cursor`, `migrate from cursor`, `import cursor config`, `export cursor skills`, `switch to claude code` |
 | `generate-skill` | `create a new skill`, `generate skill for this workflow`, `add a skill to sdlc-toolkit` |
 
 ## References
