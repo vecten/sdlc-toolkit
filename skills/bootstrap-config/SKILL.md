@@ -69,6 +69,13 @@ If `pm_tool` is `linear`, use Linear MCP tools to populate the `linear` section:
 
 Cache all resolved IDs.
 
+If `pm_tool` is `jira`, use Atlassian MCP tools to populate the `jira` section:
+
+1. `getAccessibleAtlassianResources` — present available Atlassian sites and ask user to confirm the instance URL.
+2. `getVisibleJiraProjects` — for the selected site, present projects and ask user to pick the default project key.
+3. Ask for default priority (e.g., "Medium", "High").
+4. Ask for any custom input (board URL, workflow-specific statuses, custom fields).
+
 ### Step 5 — Query Slack
 
 Use Slack MCP tools to populate the `slack` section:
@@ -78,6 +85,7 @@ Use Slack MCP tools to populate the `slack` section:
 3. Ask user for reviewer names (comma-separated list).
 4. For each reviewer name, call `slack_search_users` and cache the Slack user ID.
 5. Ask whether to enable `notify_on_pr` and `notify_on_release` (default: both true).
+6. Ask user for the analysis notification channel name (can be the same as review/release). This is used by `analyse-task` for posting analysis summaries.
 
 ### Step 6 — Collect remaining sections
 

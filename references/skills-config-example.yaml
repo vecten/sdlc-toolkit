@@ -69,11 +69,24 @@ linear:
   custom_input: |
     # E.g.: default cycle rules, label selection logic, assignee defaults
 
+# --- Jira ---
+# Used when pm_tool is "jira". The Atlassian MCP tools require a cloud ID
+# which can be the site hostname or a UUID. Skills will try the hostname
+# first and fall back to resource discovery via getAccessibleAtlassianResources.
+jira:
+  instance_url: "https://mysite.atlassian.net"   # Atlassian Cloud site URL
+  project_key: "PROJ"                             # default project key for ticket extraction
+  default_priority: "Medium"                      # default priority for new issues
+  custom_input: |
+    # E.g.: Jira board URL, workflow-specific statuses, custom fields
+    # board: https://mysite.atlassian.net/jira/software/projects/PROJ/boards/1
+
 # --- Slack ---
 slack:
   channels:
     review: "#dev"                         # channel for PR notifications
     release: "#dev"                        # channel for release notifications
+    analysis: "#dev"                       # channel for task analysis notifications
   reviewers:
     - name: "Jane Doe"
       slack_id: null                       # resolved by bootstrap-config via slack_search_users

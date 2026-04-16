@@ -24,6 +24,7 @@ npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install sk
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill debug-sentry
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-priorities
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-timeline
+npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill analyse-task
 ```
 
 ## Getting started
@@ -41,6 +42,7 @@ This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and 
 | Skill | What it does |
 |-------|-------------|
 | `bootstrap-config` | Auto-generate or update `skills-config.yaml` by scanning repos, querying the configured PM tool and Slack, and asking structured questions for gaps. |
+| `analyse-task` | Analyse a ticket (Linear or JIRA), explore the codebase, produce a tech or non-tech plan, update the ticket, prepare PM/client questions, notify Slack, and draft a client email. Optional step before `start-task`. |
 | `start-task` | Fetch a ticket's details, move it to In Progress, prepare the local repo on the correct dev branch, and enter Plan mode. |
 | `finish-task` | Stage relevant changes, verify (Docker/host/CI), commit, push, create a PR, move the issue to review, and notify Slack. |
 | `create-ticket` | Create a structured issue in the configured PM tool with config-driven defaults, cached IDs, and a standardized description template. |
@@ -63,19 +65,22 @@ Also includes:
 Skills chain together for complex workflows:
 
 ```
-debug-sentry    -->  start-task  -->  (implementation)  -->  finish-task
-create-ticket   -->  start-task  -->  (implementation)  -->  finish-task
-                     create-release  -->  (deployment)  -->  finish-release
+debug-sentry    --> [analyse-task] -->  start-task  -->  (implementation)  -->  finish-task
+create-ticket   --> [analyse-task] -->  start-task  -->  (implementation)  -->  finish-task
+                                       create-release  -->  (deployment)  -->  finish-release
 migrate-cursor  -->  bootstrap-config  (verify/update migrated config)
 ```
+
+`[analyse-task]` is optional — devs can skip straight to `start-task` when the task is already well-understood.
 
 ## MCP integrations
 
 | MCP Server | Config key | Used by |
 |------------|-----------|---------|
-| Linear | `pm_tool: linear` | `create-ticket`, `start-task`, `finish-task`, `create-release`, `finish-release`, `debug-sentry`, `manage-timeline` |
+| Linear | `pm_tool: linear` | `analyse-task`, `create-ticket`, `start-task`, `finish-task`, `create-release`, `finish-release`, `debug-sentry`, `manage-timeline` |
+| Jira (Atlassian) | `pm_tool: jira` | `analyse-task` |
 | Sentry | `error_tracking_tool: sentry` | `debug-sentry` |
-| Slack | — | `finish-task`, `create-release`, `finish-release` |
+| Slack | — | `analyse-task`, `finish-task`, `create-release`, `finish-release` |
 | Notion | `knowledge_base_tool: notion` | `manage-priorities` |
 
 ## Configuration
@@ -88,6 +93,7 @@ Key sections:
 - **repos** — workspace repositories with paths and remotes
 - **git** — per-repo branch names, prefixes, commit format
 - **linear** — team, projects, labels, ticket prefix (used when `pm_tool: linear`)
+- **jira** — instance URL, project key, default priority (used when `pm_tool: jira`)
 - **slack** — channels, reviewers with Slack IDs, notification toggles
 - **testing** — runner type (docker/host/ci-only), per-repo commands
 - **notion** — priority statuses, cached database ID (used when `knowledge_base_tool: notion`)
@@ -101,6 +107,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | Skill | Example phrases |
 |-------|----------------|
 | `bootstrap-config` | `bootstrap config`, `setup skills config`, `initialize workspace` |
+| `analyse-task` | `analyse task DST-322`, `analyze ticket ENG-123`, `plan task`, `review ticket`, `what does this ticket need` |
 | `start-task` | `start task ENG-123`, `begin task ENG-456`, `pick up ticket ENG-789` |
 | `finish-task` | `finish task ENG-123`, `wrap up ticket ENG-123`, `prepare branch and PR for ENG-123` |
 | `create-ticket` | `create ticket`, `open ticket for this`, `log this request` |
