@@ -87,6 +87,10 @@ slack:
     review: "#dev"                         # channel for PR notifications
     release: "#dev"                        # channel for release notifications
     analysis: "#dev"                       # channel for task analysis notifications
+    security_news: "#security-news"        # source channel for security advisories (triage-security)
+    security_news_id: null                 # cached channel ID, resolved by bootstrap-config
+    security_draft: "#security-news"       # where triage-security posts its draft response
+                                           # (defaults to security_news; override to route drafts elsewhere)
   reviewers:
     - name: "Jane Doe"
       slack_id: null                       # resolved by bootstrap-config via slack_search_users
@@ -135,6 +139,30 @@ release_email:
     # subject_pattern: "Release Update — {date}"
     # recipients: "client-team@example.com"
     # Include internal changes: false
+
+# --- Security ---
+# Used by triage-security. The skill always scans every repo in `repos`
+# and infers the technology stack from manifests (package.json, pyproject.toml,
+# Dockerfiles, IaC). Do not hardcode a stack list here — it drifts.
+security:
+  draft_only: true                         # always use slack_send_message_draft, never auto-send
+  scanners:
+    auto_scan: true                        # run bundled scanner scripts before manual grep
+    enabled: "auto"                        # "auto" runs every installed scanner, or pick a subset:
+                                           # ["osv", "trivy", "npm-audit", "pip-audit", "snyk",
+                                           #  "installed-pip", "installed-npm"]
+                                           # installed-* scanners audit actual runtime contents
+                                           # (venvs, node_modules) — catches lockfile drift.
+                                           # For runtime-layer advisories also call
+                                           # scripts/scan-docker-image.sh <image-ref>.
+    severity: "high"                       # min severity for noisy scanners (low|medium|high|critical)
+  custom_input: |
+    # E.g.: vendors not in use (so "Not affected" is automatic),
+    # escalation contacts, standard "team is working on it" wording,
+    # vendor-specific rotation SOPs (Vercel env vars, Snowflake tokens).
+    # Scanner notes:
+    # - osv-scanner is recommended (no auth, broad coverage).
+    # - snyk requires SNYK_TOKEN env var or `snyk auth` — skipped silently otherwise.
 
 # --- Timeline ---
 # Used by manage-timeline to keep project dates current.

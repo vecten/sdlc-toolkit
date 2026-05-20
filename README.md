@@ -25,6 +25,7 @@ npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install sk
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-priorities
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-timeline
 npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill analyse-task
+npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill triage-security
 ```
 
 ## Getting started
@@ -49,6 +50,7 @@ This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and 
 | `create-release` | Cut a release branch from dev, enrich notes with ticket metadata, create a PR, and notify Slack. |
 | `finish-release` | Move released tickets to Done and draft a client-facing release email. |
 | `debug-sentry` | Investigate a Sentry issue, diagnose root cause, create a ticket, then hand off to `start-task` and `finish-task`. |
+| `triage-security` | Triage a security advisory (Slack brief, CVE, or pasted text) against the workspace stack, run bundled deterministic scanners (osv-scanner, trivy, npm audit, pip-audit, snyk, installed-pip/npm for runtime drift, and Docker image scans), draft a Slack response with affected/not-affected verdicts, and hand off remediations to `create-ticket`. |
 | `manage-priorities` | Manage a priorities tracker in the configured knowledge base with Table/Board views, status cards, and detail subpages. |
 | `manage-timeline` | Scan PM tool projects, detect schedule slippage, and cascade date adjustments across a sequential or multi-developer timeline. |
 | `migrate-cursor` | Migrate workspace configuration, local skills, and rules from Cursor to Claude Code. Two-phase: export in Cursor, import in Claude Code. |
@@ -65,10 +67,11 @@ Also includes:
 Skills chain together for complex workflows:
 
 ```
-debug-sentry    --> [analyse-task] -->  start-task  -->  (implementation)  -->  finish-task
-create-ticket   --> [analyse-task] -->  start-task  -->  (implementation)  -->  finish-task
-                                       create-release  -->  (deployment)  -->  finish-release
-migrate-cursor  -->  bootstrap-config  (verify/update migrated config)
+debug-sentry     --> [analyse-task] -->  start-task  -->  (implementation)  -->  finish-task
+triage-security  -->  create-ticket  -->  start-task  -->  (implementation)  -->  finish-task
+create-ticket    --> [analyse-task] -->  start-task  -->  (implementation)  -->  finish-task
+                                        create-release  -->  (deployment)  -->  finish-release
+migrate-cursor   -->  bootstrap-config  (verify/update migrated config)
 ```
 
 `[analyse-task]` is optional — devs can skip straight to `start-task` when the task is already well-understood.
@@ -80,7 +83,7 @@ migrate-cursor  -->  bootstrap-config  (verify/update migrated config)
 | Linear | `pm_tool: linear` | `analyse-task`, `create-ticket`, `start-task`, `finish-task`, `create-release`, `finish-release`, `debug-sentry`, `manage-timeline` |
 | Jira (Atlassian) | `pm_tool: jira` | `analyse-task` |
 | Sentry | `error_tracking_tool: sentry` | `debug-sentry` |
-| Slack | — | `analyse-task`, `finish-task`, `create-release`, `finish-release` |
+| Slack | — | `analyse-task`, `finish-task`, `create-release`, `finish-release`, `triage-security` |
 | Notion | `knowledge_base_tool: notion` | `manage-priorities` |
 
 ## Configuration
@@ -94,7 +97,8 @@ Key sections:
 - **git** — per-repo branch names, prefixes, commit format
 - **linear** — team, projects, labels, ticket prefix (used when `pm_tool: linear`)
 - **jira** — instance URL, project key, default priority (used when `pm_tool: jira`)
-- **slack** — channels, reviewers with Slack IDs, notification toggles
+- **slack** — channels (review, release, analysis, security_news, security_draft), reviewers with Slack IDs, notification toggles
+- **security** — `draft_only`, `scanners` (toggle automated scans, pick which scanners to run, set severity threshold), and `custom_input` for `triage-security`. The skill always scans every repo in `repos` and detects the stack from manifests — no hardcoded stack list.
 - **testing** — runner type (docker/host/ci-only), per-repo commands
 - **notion** — priority statuses, cached database ID (used when `knowledge_base_tool: notion`)
 - **timeline** — developer capacity, execution order, parallel groups, ongoing projects (used by `manage-timeline`)
@@ -114,6 +118,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | `create-release` | `create release`, `cut release`, `prepare release` |
 | `finish-release` | `finish release`, `close release`, `release deployed` |
 | `debug-sentry` | `debug sentry <url>`, `fix sentry issue <url>`, `investigate this Sentry issue` |
+| `triage-security` | `triage security`, `security advisory`, `security news`, `check security brief`, `any security issues today` |
 | `manage-priorities` | `manage top priorities`, `update priorities board`, `bootstrap priorities tracker` |
 | `manage-timeline` | `manage timeline`, `update timeline`, `check timeline`, `are we on track` |
 | `migrate-cursor` | `migrate cursor`, `migrate from cursor`, `import cursor config`, `export cursor skills`, `switch to claude code` |

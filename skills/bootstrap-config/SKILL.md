@@ -86,6 +86,8 @@ Use Slack MCP tools to populate the `slack` section:
 4. For each reviewer name, call `slack_search_users` and cache the Slack user ID.
 5. Ask whether to enable `notify_on_pr` and `notify_on_release` (default: both true).
 6. Ask user for the analysis notification channel name (can be the same as review/release). This is used by `analyse-task` for posting analysis summaries.
+7. Ask user for the security news channel name (e.g. `#security-news`). Resolve its ID with `slack_search_channels` and cache as `slack.channels.security_news_id`. This is the source channel for `triage-security`.
+8. Ask user for the security draft channel (where `triage-security` posts its response draft). Default to the same channel as `security_news` so replies thread on the original advisory; the user can override if drafts should land in a separate channel.
 
 ### Step 6 — Collect remaining sections
 
@@ -110,6 +112,15 @@ Ask structured questions for:
 - Confirm branch prefixes (default: feature/, bugfix/, hotfix/)
 - Commit prefix pattern (default: `<TICKET_ID>: <message>`)
 - Any custom git conventions? (free text -> `custom_input`)
+
+**Security** (used by `triage-security`):
+- `draft_only`: always draft the Slack response instead of sending (default: `true`).
+- `scanners.auto_scan`: run the bundled scanner scripts (osv-scanner, trivy, npm audit, pip-audit, snyk) before manual grep (default: `true` — scripts skip silently when CLIs are missing, so this is safe to leave on).
+- `scanners.enabled`: keep `"auto"` (run every installed scanner) or pick a subset like `["osv", "trivy", "installed-pip"]`. The `installed-*` entries audit actual venv/node_modules contents to catch lockfile drift.
+- `scanners.severity`: minimum severity threshold for noisy scanners (default: `"high"`).
+- Any custom input? (vendors explicitly not in use, escalation contacts, standard wording.)
+
+Do not ask for a stack list or a `repos_to_scan` subset — the skill always scans every repo in `repos` and detects the stack from manifests at runtime.
 
 **Timeline** (optional — skip if the user does not use `manage-timeline`):
 - Developer count (default: 1)
