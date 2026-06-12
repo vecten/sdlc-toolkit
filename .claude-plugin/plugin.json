@@ -1,5 +1,10 @@
 {
   "name": "sdlc-toolkit",
   "description": "End-to-end SDLC skills: task management, releases, debugging, priorities — config-driven for any team",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "author": {
+    "name": "Vecten"
+  },
+  "homepage": "https://github.com/vecten/sdlc-toolkit",
+  "license": "MIT"
 }

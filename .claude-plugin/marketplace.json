@@ -1,0 +1,14 @@
+{
+  "name": "vecten",
+  "description": "Public Claude Code plugins by Vecten",
+  "owner": {
+    "name": "Vecten"
+  },
+  "plugins": [
+    {
+      "name": "sdlc-toolkit",
+      "source": ".",
+      "description": "End-to-end SDLC skills: task management, releases, debugging, priorities — config-driven for any team"
+    }
+  ]
+}

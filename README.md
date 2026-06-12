@@ -6,27 +6,16 @@ Covers the full loop: pick up a ticket, plan, implement, verify, commit, push, P
 
 ## Installation
 
-Install the full plugin:
+### Claude Code
 
-```bash
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install plugin sdlc-toolkit
+```
+/plugin marketplace add vecten/sdlc-toolkit
+/plugin install sdlc-toolkit@vecten
 ```
 
-Or install individual skills:
+### Cursor
 
-```bash
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill bootstrap-config
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill start-task
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill finish-task
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill create-ticket
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill create-release
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill finish-release
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill debug-sentry
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-priorities
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill manage-timeline
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill analyse-task
-npx --yes --package "github:vecten/agent-toolkit#main" vecten-toolkit install skill triage-security
-```
+Add this repository as a plugin source in Cursor's plugin settings, then install `sdlc-toolkit`.
 
 ## Getting started
 
@@ -127,3 +116,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 ## References
 
 - `references/skills-config-example.yaml` — full annotated config example
+
+## License
+
+MIT — see [LICENSE](LICENSE).
