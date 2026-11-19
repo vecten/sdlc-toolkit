@@ -2,9 +2,9 @@
 name: create-ticket
 description: >
   Create a structured issue in the configured PM tool with required metadata
-  prompts, defaults, cached IDs from skills-config.yaml, and fallback ID
-  refresh. Use when user says "create ticket", "open ticket", "log request",
-  or similar.
+  prompts, defaults from skills-config.yaml, and a short Context / Requested
+  change / Acceptance criteria description. Use when user says "create
+  ticket", "open ticket", "log request", or similar.
 ---
 
 # Create Ticket
@@ -25,6 +25,7 @@ Required config keys:
 - `linear.projects[]`
 - `linear.labels[]`
 - `linear.default_priority`
+- `linear.default_assignee` — optional; when set, the assignee question is skipped
 - `linear.custom_input`
 
 ## Guardrails
@@ -32,20 +33,11 @@ Required config keys:
 1. If any required data is unclear, ask the user before creating the issue.
 2. Keep the final issue description structured for both humans and AI agents.
 
-## Cached identifiers
+## Names, not cached IDs
 
-Use IDs from `skills-config.yaml` first to avoid repeated lookups. The config contains team ID, project IDs, and label IDs pre-resolved by `bootstrap-config`.
+Pass team, project and label **names** from the config; the Linear tools accept names and resolve them. The config lists are the preferred choices to offer, not a cache: projects get renamed and closed. Ignore any `*_id` values in the config.
 
-## Fallback cache refresh
-
-If Linear rejects a cached ID (not found/invalid):
-
-1. Refresh only that entity:
-   - team -> `list_teams`
-   - project -> `list_projects`
-   - label -> `list_issue_labels`
-2. Update in-memory mapping for this run.
-3. Continue without re-fetching unrelated IDs.
+If Linear rejects a name (not found), look the entity up live (`list_projects`, `list_issue_labels`, `list_teams`), offer the current matches, and tell the user which config entry is out of date.
 
 ## Required metadata policy
 
@@ -56,7 +48,7 @@ Team is always fixed to the value in config. If the user does not provide a fiel
 | Project  | `linear.default_project`   | Choose from list          |
 | Priority | `linear.default_priority`  | Apply default? Y/N        |
 | Label    | —                          | Choose from list + None   |
-| Assignee | —                          | me / Unassigned / Other   |
+| Assignee | `linear.default_assignee`  | me / Unassigned / Other   |
 | Cycle    | —                          | Current / None            |
 
 Incorporate any additional rules from `linear.custom_input`.
@@ -67,39 +59,31 @@ Incorporate any additional rules from `linear.custom_input`.
 2. Ask for missing fields using structured multiple-choice questions.
 3. For each missing field, ask "Apply default?" when a default exists.
 4. For label, require one explicit choice from the config label list including `None`.
-5. For assignee, require one explicit choice: `me`, `Unassigned`, or `Other`.
+5. For assignee, use `linear.default_assignee` when it is set (report it under "Defaults used"); otherwise require one explicit choice: `me`, `Unassigned`, or `Other`.
 6. For cycle, require explicit choice: `Current` or `None`.
-7. Resolve names to IDs using config cached mappings.
+7. Pass the chosen names to `save_issue`; see "Names, not cached IDs".
 
 ## Ticket content standard (human + AI)
 
-When creating a ticket description, use this template:
+When creating a ticket description, use this template unless `linear.custom_input` gives another:
 
 ```markdown
 ## Context
-<background and why this is needed>
-
-## Problem statement
-<current issue/gap>
+<background, the current gap, and why this is needed>
 
 ## Requested change
-<what needs to be implemented>
+<what needs to be done>
 
 ## Acceptance criteria
 - <criterion 1>
 - <criterion 2>
-
-## Validation / test plan
-- <how to verify behavior>
-
-## Risks / scope guardrails
-- <known risk or constraint>
-
-## Production verification notes
-<prod checks required later, or "Not required">
 ```
 
+Add a section only when the user's input calls for it (for example a known risk, or a check needed in production), and keep sentences short.
+
 If user gives loose notes, normalize them into the template before creating the issue.
+
+Never write `#<number>` in a ticket's title or description: Linear turns it into a link to an unrelated issue. Write `item 3` or `step 3` instead.
 
 ## Issue creation call
 
@@ -107,7 +91,7 @@ Use `save_issue` with:
 
 - `team`: from `linear.team_name`
 - `title`: concise, action-oriented
-- `description`: structured markdown template above
+- `description`: the markdown template above
 - optional metadata from intake:
   - `project`
   - `priority`

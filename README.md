@@ -35,9 +35,9 @@ This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and 
 |-------|-------------|
 | `bootstrap-config` | Auto-generate or update `skills-config.yaml` by scanning repos, querying the configured PM tool and Slack, and asking structured questions for gaps. |
 | `analyse-task` | Analyse a ticket (Linear or JIRA), explore the codebase, produce a tech or non-tech plan, update the ticket, prepare PM/client questions, notify Slack, and draft a client email. Optional step before `start-task`. |
-| `start-task` | Fetch a ticket's details, move it to In Progress, prepare the local repo on the correct dev branch, and enter Plan mode. |
-| `finish-task` | Stage relevant changes, verify (Docker/host/CI), commit, push, create a PR, move the issue to review, and notify Slack. |
-| `create-ticket` | Create a structured issue in the configured PM tool with config-driven defaults, cached IDs, and a standardized description template. |
+| `start-task` | Fetch a ticket's details and comments, move it to In Progress, prepare the repo (one worktree per ticket when `git.worktrees_dir` is set, otherwise the dev branch), and enter Plan mode. |
+| `finish-task` | Stage relevant changes, run every configured test and lint command, commit, push, open a PR against the dev branch, move the issue to review, notify Slack, and offer to watch CI. |
+| `create-ticket` | Create an issue in the configured PM tool with config-driven defaults and a short Context / Requested change / Acceptance criteria description. |
 | `create-release` | Cut a release PR: selected tickets cherry-picked onto a branch from the release target, or a full merge of dev. Asks which first, works in a temporary worktree, enriches notes with ticket metadata, and notifies Slack. |
 | `finish-release` | Show a table of released tickets (deploy status, open items, proposed status), update the ones you confirm, and draft a client-facing release email. |
 | `debug-sentry` | Investigate a Sentry issue, diagnose root cause, create a ticket, then hand off to `start-task` and `finish-task`. |

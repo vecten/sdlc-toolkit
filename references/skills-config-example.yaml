@@ -45,6 +45,7 @@ git:
     bugfix: "bugfix/"
     hotfix: "hotfix/"
   commit_prefix_pattern: "<TICKET_ID>: <message>"
+  worktrees_dir: null                      # optional, e.g. ".worktrees"; start-task then creates one worktree per ticket and repo
   custom_input: |
     # Any repo-specific git conventions. Examples:
     # - Squash merges only on my-app
@@ -53,7 +54,7 @@ git:
 # --- Linear ---
 linear:
   team_name: "My Team"
-  team_id: null                            # resolved by bootstrap-config
+  team_id: null                            # optional; skills pass names, not ids
   default_project: "My Project"
   default_project_id: null                 # resolved by bootstrap-config
   projects:
@@ -65,6 +66,7 @@ linear:
     - name: "Feature"
       id: null
   default_priority: 3                      # 1=Urgent, 2=High, 3=Medium, 4=Low
+  default_assignee: null                   # optional, e.g. "me" or a user name; skips the assignee question
   ticket_prefix: "PROJ"                    # used for commit prefixes and ticket extraction
   custom_input: |
     # E.g.: default cycle rules, label selection logic, assignee defaults
