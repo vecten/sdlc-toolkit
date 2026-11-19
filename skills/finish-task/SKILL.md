@@ -29,6 +29,8 @@ Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell th
 Required config keys:
 
 - `pm_tool` — which PM tool to use (default: `linear`)
+- `repos` — to detect the current repo from CWD, and `repos.<repo>.remote` for the GitHub `owner/name`
+- `git.branches.<repo>.dev` — the branch the PR targets
 - `git.branch_prefixes` — prefix rules for feature/bugfix/hotfix
 - `git.commit_prefix_pattern` — commit message format
 - `slack.channels.review` — Slack channel for PR notifications
@@ -173,10 +175,12 @@ In the Testing section:
 - Reflect actual verification based on `testing.runner`.
 - If verification was blocked (Docker not running, ci-only), say that explicitly.
 
+The PR targets the repo's dev branch from `git.branches.<repo>.dev`, not the repository's default branch on GitHub. Target another branch only when the user says so (for example, a hotfix straight to the release target).
+
 Create the PR with:
 
 ```bash
-gh pr create --title "<ticket-id>: <ticket title>" --body "$(cat <<'EOF'
+gh pr create --repo <owner>/<name> --base <DEV_BRANCH> --head <branch> --title "<ticket-id>: <ticket title>" --body "$(cat <<'EOF'
 <pr-body>
 EOF
 )"
