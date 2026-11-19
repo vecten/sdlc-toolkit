@@ -163,11 +163,15 @@ Ask if any adjustments are needed (tone, missing context, grouping).
 
 ## After the release: syncing dev with the target
 
-A back-merge (target into dev) is needed only when the target holds changes dev lacks, for example a hotfix merged straight to the target. Check first:
+A back-merge (target into dev) is needed only when the target holds changes dev lacks, for example a hotfix merged straight to the target. A plain diff cannot tell: it also lists the work still waiting on dev. Check whether merging the target into dev would change dev (git 2.38 or later):
 
 ```bash
-git fetch origin && git diff --stat origin/<DEV_BRANCH> origin/<TARGET_BRANCH>
+git fetch origin
+git merge-tree --write-tree origin/<DEV_BRANCH> origin/<TARGET_BRANCH> | head -1
+git rev-parse 'origin/<DEV_BRANCH>^{tree}'
 ```
+
+If the two hashes match, no back-merge is needed. If they differ, or `merge-tree` reports conflicts, it is.
 
 If one is needed, never open the back-merge PR with the target branch as head. When the repo deletes merged branches automatically, merging that PR deletes the target branch. Cut a temporary branch from the target (e.g. `backmerge/YYYY-MM-DD`) and open the PR from it into dev.
 

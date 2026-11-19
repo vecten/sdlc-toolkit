@@ -80,20 +80,24 @@ git fetch origin
 git log --cherry-pick --right-only --no-merges --oneline origin/<TARGET_BRANCH>...origin/<DEV_BRANCH>
 ```
 
-`--cherry-pick` hides changes an earlier selected-tickets release already shipped.
+`--cherry-pick` hides single commits an earlier selected-tickets release already shipped. A PR merged with a merge commit and shipped that way still shows its individual commits: treat it as shipped when the target has its `(cherry picked from commit <merge-commit>)` line (`git log origin/<TARGET_BRANCH> --grep "cherry picked from commit <merge-commit>"`).
 
 ### 1) Find the commits (selected tickets only)
 
 For each ticket key, find its PRs merged into the dev branch:
 
 ```bash
-gh pr list --repo <owner>/<name> --base <DEV_BRANCH> --state merged --search "<TICKET>" --json number,title,mergedAt,mergeCommit
-git log origin/<DEV_BRANCH> --grep "<TICKET>" --format="%H %s"
+gh pr list --repo <owner>/<name> --base <DEV_BRANCH> --state merged --search "<TICKET>" --json number,title,headRefName,mergedAt,mergeCommit
+git log origin/<DEV_BRANCH> -E --grep "<TICKET>([^0-9]|$)" --format="%H %s"
 ```
 
-Use each PR's merge commit (one commit for a squash merge; a merge commit is picked against its first parent), oldest first. If a ticket has no PR merged into dev, say so and leave it out. Never pick commits from an unmerged branch.
+Match the key exactly: `ENG-12` must not pick up `ENG-123`. Drop search hits whose title and branch name lack the exact key.
 
-If anything is ambiguous (several PRs for one ticket, a PR title without the key), show the commit list and wait for the user's go.
+Use each PR's merge commit: one commit for a squash merge; a merge commit is picked against its first parent. For a rebase merge, the merge commit is only the last of the PR's commits: pick all of them, the `n` commits ending at the merge commit (`git log -n <n> --format="%H %s" <merge-commit>`, after checking their subjects match `gh pr view <number> --json commits`). If a ticket has no PR merged into dev, say so and leave it out. Never pick commits from an unmerged branch.
+
+If a picked change adds a database migration, check that the migrations it depends on are already on the target or also picked. A clean cherry-pick can still fail on deploy.
+
+If anything is ambiguous (several PRs for one ticket, a PR title without the key), show the commit list and wait for the user's go. If no commits remain, stop: never fall back to a full release.
 
 ### 2) Prepare the release branch
 
@@ -109,24 +113,28 @@ Then, from the repo's directory, run the bundled script:
 # selected tickets
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/prepare-release-branch.sh" <DEV_BRANCH> <TARGET_BRANCH> --pick <commit> [<commit>...]
 # full release
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/prepare-release-branch.sh" <DEV_BRANCH> <TARGET_BRANCH>
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/prepare-release-branch.sh" <DEV_BRANCH> <TARGET_BRANCH> --all
 ```
 
-The script fetches, picks a branch name that is free both locally and on `origin` (`release/YYYY-MM-DD`, then `-2`, `-3`, …), creates it from `origin/<TARGET_BRANCH>` in a temporary worktree, and either cherry-picks the given commits with `-x` or merges `origin/<DEV_BRANCH>`. Capture `RELEASE_BRANCH` and `WORKTREE` from its last two lines.
+The script fetches, picks a branch name that is free both locally and on `origin` (`release/YYYY-MM-DD`, then `-2`, `-3`, …), creates it from `origin/<TARGET_BRANCH>` in a temporary worktree, and either cherry-picks the given commits with `-x`, in the order they sit on the dev branch, or merges `origin/<DEV_BRANCH>`. Its last two lines are `RELEASE_BRANCH=<name>` and `WORKTREE=<path>`. Shell variables do not survive between commands, so write those two literal values into every later command where this skill says `<RELEASE_BRANCH>` and `<WORKTREE>`.
+
+A line `SKIPPED <commit>: already on origin/<TARGET_BRANCH>` means that change shipped earlier; list it under the tickets left out.
 
 If it exits non-zero, it has already removed the worktree and the local branch:
 
-- `2`, conflict: the output names the files and the commit. Report that and stop. A conflicting pick usually depends on an earlier dev commit that was not selected; name the candidates with `git log --oneline origin/<TARGET_BRANCH>..origin/<DEV_BRANCH> -- <files>` and let the user decide.
+- `2`, conflict: the output names the files and the commit. Report that and stop.
+  - Selected tickets: a conflicting pick usually depends on an earlier dev commit that was not selected. Name the candidates with `git log --oneline origin/<TARGET_BRANCH>..origin/<DEV_BRANCH> -- <files>` and let the user decide.
+  - Full release: the target has changes on the same lines that dev lacks, typically a hotfix or an earlier cherry-pick that dev has changed again. Propose syncing dev with the target first (a back-merge through a temporary branch, see finish-release), then running the release again.
 - `3`, nothing to release: the target already has these changes.
-- `1`: usage or git error, or a picked commit that is not on the dev branch. Report the message.
+- `1`: usage error, a picked commit that is not on the dev branch, or a git failure such as commit signing or a hook. Report the message.
 
 ### 3) Prepare the release summary (with PM tool enrichment)
 
 Commits and changed files in the release:
 
 ```bash
-git -C "$WORKTREE" log --oneline --no-decorate origin/<TARGET_BRANCH>..HEAD
-git -C "$WORKTREE" diff --stat origin/<TARGET_BRANCH>...HEAD
+git -C <WORKTREE> log --oneline --no-decorate origin/<TARGET_BRANCH>..HEAD
+git -C <WORKTREE> diff --stat origin/<TARGET_BRANCH>...HEAD
 ```
 
 Then enrich the release summary:
@@ -156,8 +164,6 @@ Suggested summary format:
 
 - <ticket-key> <title>
 
-The cherry-picked changes are identical to the ones on dev, so the next full release should merge them without conflicts.
-
 ## Ticket context
 
 - <ticket-key>: <status>, <priority>, <assignee>
@@ -174,13 +180,13 @@ The cherry-picked changes are identical to the ones on dev, so the next full rel
 ### 4) Push, create the PR, remove the worktree
 
 ```bash
-git -C "$WORKTREE" push -u origin "$RELEASE_BRANCH"
-gh pr create --repo <owner>/<name> --base <TARGET_BRANCH> --head "$RELEASE_BRANCH" --title "<title>" --body "$(cat <<'EOF'
+git -C <WORKTREE> push -u origin <RELEASE_BRANCH> && gh pr create --repo <owner>/<name> --base <TARGET_BRANCH> --head <RELEASE_BRANCH> --title "<title>" --body "$(cat <<'EOF'
 <release-summary-markdown>
 EOF
-)"
-git worktree remove "$WORKTREE"
+)" && git worktree remove <WORKTREE>
 ```
+
+If the push fails, stop: do not create the PR.
 
 Title: `Release YYYY-MM-DD` for a full release, `Release YYYY-MM-DD: <ticket-key>, <ticket-key>` for selected tickets.
 
@@ -194,8 +200,8 @@ Mention each reviewer from `slack.reviewers[]` using their pre-resolved `slack_i
 
 ```text
 *Release branch is ready*
-• Branch: `$RELEASE_BRANCH`
-• PR: <$PR_URL|Release PR>
+• Branch: `<RELEASE_BRANCH>`
+• PR: <<PR_URL>|Release PR>
 
 Please share any blockers, testing still in progress, or anything that should stop this release.
 
