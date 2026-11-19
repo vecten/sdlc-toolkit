@@ -3,7 +3,7 @@
 # Location: <workspace>/.cursor/skills-config.yaml
 #
 # This file is the single source of truth for all sdlc-toolkit
-# skills. Run `bootstrap-config` to generate or update it.
+# skills. Run `/sdlc-toolkit:bootstrap-config` (in Cursor: `/bootstrap-config`) to generate or update it.
 # =============================================================
 
 # --- Tool integrations ---

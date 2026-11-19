@@ -25,7 +25,7 @@ Add this repository as a plugin source in Cursor's plugin settings, then install
 /sdlc-toolkit:bootstrap-config
 ```
 
-The setup skills (`bootstrap-config`, `migrate-cursor`, `generate-skill`) run only when you type them; Claude does not pick them automatically.
+The setup skills (`bootstrap-config`, `migrate-cursor`, `generate-skill`) run only when you type them; the agent does not pick them automatically. In Cursor, type `/bootstrap-config`, `/migrate-cursor` or `/generate-skill`.
 
 This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and writes `.cursor/skills-config.yaml` — the single config file all skills read from.
 
@@ -79,7 +79,7 @@ migrate-cursor   -->  bootstrap-config  (verify/update migrated config)
 
 ## Configuration
 
-All skills read from `<workspace>/.cursor/skills-config.yaml`. Run `bootstrap-config` to generate it. See `references/skills-config-example.yaml` for the full annotated schema.
+All skills read from `<workspace>/.cursor/skills-config.yaml`. Run `/sdlc-toolkit:bootstrap-config` (in Cursor: `/bootstrap-config`) to generate it. See `references/skills-config-example.yaml` for the full annotated schema.
 
 Key sections:
 
@@ -101,7 +101,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 
 | Skill | Example phrases |
 |-------|----------------|
-| `bootstrap-config` | typed only: `/sdlc-toolkit:bootstrap-config` |
+| `bootstrap-config` | typed only: `/sdlc-toolkit:bootstrap-config` (Cursor: `/bootstrap-config`) |
 | `analyse-task` | `analyse task DST-322`, `analyze ticket ENG-123`, `plan task`, `review ticket`, `what does this ticket need` |
 | `start-task` | `start task ENG-123`, `begin task ENG-456`, `pick up ticket ENG-789` |
 | `finish-task` | `finish task ENG-123`, `wrap up ticket ENG-123`, `prepare branch and PR for ENG-123` |
@@ -112,8 +112,8 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | `triage-security` | `triage security`, `security advisory`, `security news`, `check security brief`, `any security issues today` |
 | `manage-priorities` | `manage top priorities`, `update priorities board`, `bootstrap priorities tracker` |
 | `manage-timeline` | `manage timeline`, `update timeline`, `check timeline`, `are we on track` |
-| `migrate-cursor` | typed only: `/sdlc-toolkit:migrate-cursor` |
-| `generate-skill` | typed only: `/sdlc-toolkit:generate-skill` |
+| `migrate-cursor` | typed only: `/sdlc-toolkit:migrate-cursor` (Cursor: `/migrate-cursor`) |
+| `generate-skill` | typed only: `/sdlc-toolkit:generate-skill` (Cursor: `/generate-skill`) |
 
 ## References
 

@@ -24,7 +24,7 @@ Default outcome:
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
+Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` (in Cursor: `/bootstrap-config`) first.
 
 Required config keys:
 
