@@ -27,7 +27,7 @@ Add this repository as a plugin source in Cursor's plugin settings, then install
 
 The setup skills (`bootstrap-config`, `migrate-cursor`, `generate-skill`) run only when you type them; the agent does not pick them automatically.
 
-This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and writes `.cursor/skills-config.yaml` — the single config file all skills read from.
+This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and writes `.cursor/skills-config.yaml` — the single config file all skills read from. Skills look for it in `.cursor/`, then `.claude/`, then the workspace root.
 
 ## What's included
 
@@ -74,12 +74,12 @@ migrate-cursor   -->  bootstrap-config  (verify/update migrated config)
 | Linear | `pm_tool: linear` | `analyse-task`, `create-ticket`, `start-task`, `finish-task`, `create-release`, `finish-release`, `debug-sentry`, `manage-timeline` |
 | Jira (Atlassian) | `pm_tool: jira` | `analyse-task` |
 | Sentry | `error_tracking_tool: sentry` | `debug-sentry` |
-| Slack | — | `analyse-task`, `finish-task`, `create-release`, `finish-release`, `triage-security` |
+| Slack | — | `analyse-task`, `finish-task`, `create-release`, `triage-security` |
 | Notion | `knowledge_base_tool: notion` | `manage-priorities` |
 
 ## Configuration
 
-All skills read from `<workspace>/.cursor/skills-config.yaml`. Run `/sdlc-toolkit:bootstrap-config` to generate it. See `references/skills-config-example.yaml` for the full annotated schema.
+All skills read `skills-config.yaml` from `.cursor/`, then `.claude/`, then the workspace root (first found wins; every `custom_input` block applies). Run `/sdlc-toolkit:bootstrap-config` to generate it. See `references/skills-config-example.yaml` for the full annotated schema.
 
 Key sections:
 

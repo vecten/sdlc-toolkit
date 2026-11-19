@@ -19,7 +19,7 @@ This skill reads `pm_tool` from config. Currently supported: `linear`, `jira`.
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
+Read `skills-config.yaml` before acting. Look in `.cursor/`, then `.claude/`, then the folder itself, starting from the current folder and moving up to the workspace root; use the first file found. If two copies differ, use the first and name both in one line. Every `custom_input` block applies and overrides this skill's defaults. If no file exists, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 
@@ -37,7 +37,7 @@ Conditional config keys (based on `pm_tool`):
 
 ## Guardrails
 
-1. Always enter Plan mode before any analysis work.
+1. Analysis only: no code changes, no branch operations. Do not enter Plan mode: the ticket comment (Step 7) and Slack (Step 9) steps need tools Plan mode blocks.
 2. Always ask the user to choose plan result type (tech vs non-tech) — never assume.
 3. Never move the ticket to "In Progress" or any other status.
 4. Never create a git branch or make code changes.
@@ -69,9 +69,9 @@ If the user does not specify plan result type, ask before proceeding. Present bo
 
 ## Workflow
 
-### Step 1 — Force Plan mode
+### Step 1 — Stay in analysis
 
-Switch to **Plan mode** immediately. This skill is analysis-only — all outputs are plans, questions, and communications. No code changes or branch operations are permitted during this workflow.
+This skill is analysis-only — all outputs are plans, questions, and communications. No code changes or branch operations are permitted during this workflow. Do not switch to Plan mode: it would block the ticket comment and the Slack message.
 
 ### Step 2 — Collect plan result type
 
@@ -181,7 +181,7 @@ Use `save_comment` with the issue ID.
 
 #### If PM tool is `jira`:
 
-Use `addCommentToJiraIssue`.
+Use `addOrEditJiraIssueComment`.
 
 #### Comment content structure:
 
