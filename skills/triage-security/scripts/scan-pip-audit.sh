@@ -29,7 +29,9 @@ while IFS= read -r -d '' pyproject; do
   FOUND=1
   proj_dir="$(dirname "${pyproject}")"
   echo "--- pip-audit: ${proj_dir} (pyproject.toml) ---"
-  ( cd "${proj_dir}" && pip-audit 2>&1 ) || true
+  # The project path audits its declared dependencies; a bare `pip-audit`
+  # would audit pip-audit's own environment instead.
+  pip-audit "${proj_dir}" 2>&1 || true
 done < <(find "${REPO_PATH}" \
   -type d \( -name .venv -o -name node_modules -o -name .git \) -prune -o \
   -type f -name 'pyproject.toml' -print0 2>/dev/null)

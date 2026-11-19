@@ -4,11 +4,13 @@
 # `snyk auth` run. The wrapper skips silently if the CLI is missing or
 # unauthenticated, so it is safe to enable by default.
 #
-# Usage: scan-snyk.sh <repo-path>
+# Usage: scan-snyk.sh <repo-path> [severity]
+#   severity  minimum severity: low, medium, high or critical (default: high)
 
 set -uo pipefail
 
-REPO_PATH="${1:?Usage: $0 <repo-path>}"
+REPO_PATH="${1:?Usage: $0 <repo-path> [severity]}"
+SEVERITY="$(echo "${2:-high}" | tr '[:upper:]' '[:lower:]')"
 
 if ! command -v snyk >/dev/null 2>&1; then
   echo "SKIP: snyk not installed. See https://docs.snyk.io/snyk-cli"
@@ -21,8 +23,7 @@ if [ -z "${SNYK_TOKEN:-}" ] && ! snyk config get api >/dev/null 2>&1; then
 fi
 
 # --all-projects walks every supported manifest in the tree.
-# --severity-threshold=high keeps the noise down; lower it from the skill
-# when an advisory is low-severity.
+# --severity-threshold keeps the noise down (high unless the skill lowers it).
 ( cd "${REPO_PATH}" && snyk test \
     --all-projects \
-    --severity-threshold=high 2>&1 ) || true
+    --severity-threshold="${SEVERITY}" 2>&1 ) || true

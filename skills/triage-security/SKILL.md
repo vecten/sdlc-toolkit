@@ -26,30 +26,32 @@ Required config keys:
 - `slack.channels.security_draft` — channel where the draft response is posted. Defaults to `slack.channels.security_news` so replies thread on the original advisory; override only when drafts should go to a separate channel (e.g. a team-internal review channel)
 - `security.draft_only` — when `true`, always use `slack_send_message_draft` instead of sending
 - `security.custom_input` — free-form rules (escalation contacts, standard wording, vendors known not to be in use)
-- `security.scanners.auto_scan` — when `true` (default), run the bundled scanner scripts before manual grepping. The scripts skip silently when their CLI is missing, so this is safe to leave on
+- `security.scanners.auto_scan` — when `true` (default), run the bundled scanner scripts before manual grepping. Scanners whose CLI is missing are skipped, and a run where none ran reports `INCONCLUSIVE`, so this is safe to leave on
 - `security.scanners.enabled` — list selecting which scanners to run: `osv`, `trivy`, `npm-audit`, `pip-audit`, `snyk`, `installed-pip`, `installed-npm`. Defaults to `auto` (all installed scanners)
-- `security.scanners.severity` — minimum severity threshold for noisy scanners (`high` by default; lower to `low` for breach/runtime advisories)
+- `security.scanners.severity` — minimum severity threshold for noisy scanners: `low`, `medium`, `high` or `critical` (`high` by default; lower to `low` for breach/runtime advisories). Passed to the scripts in Step 3; trivy and snyk honour it, while osv-scanner, pip-audit and npm audit have no severity filter and always report every severity
 - `repos` — every repo listed here is scanned; the stack is inferred from each repo's manifests and IaC, never from a hardcoded list
 
 ## Prerequisites
 
-At least one scanner CLI must be installed. Run the bundled helper to install all supported scanners in one step:
+At least one scanner CLI must be installed. Run the bundled helper to see which scanners are missing:
 
 ```bash
-bash .claude/skills/triage-security/scripts/install-deps.sh
+bash "${CLAUDE_SKILL_DIR}/scripts/install-deps.sh"
 ```
+
+The helper never installs anything: it only prints the install commands for the missing scanners. Show those commands to the user and let them decide what to run; do not run them yourself.
 
 Individual tools and their install commands:
 
 | Scanner | macOS | Linux / other |
 |---------|-------|---------------|
-| osv-scanner | `brew install osv-scanner` | `go install github.com/google/osv-scanner/cmd/osv-scanner@latest` |
+| osv-scanner | `brew install osv-scanner` | `go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest` |
 | trivy | `brew install aquasecurity/trivy/trivy` | [aquasecurity.github.io/trivy](https://aquasecurity.github.io/trivy/) |
-| npm audit | `brew install node` | `apt-get install nodejs` |
-| pip-audit | `pip install pip-audit` | `pip install pip-audit` |
+| npm audit | `brew install node` | `sudo apt-get install nodejs npm` |
+| pip-audit | `pipx install pip-audit` | `pipx install pip-audit` |
 | snyk | `npm install -g snyk && snyk auth` | `npm install -g snyk && snyk auth` (free account required) |
 
-Missing scanners are skipped gracefully — the skill logs a `SKIP:` line for each absent tool and continues with whatever is installed. Having zero scanners installed will prevent Step 3 from producing any output; install at least `osv-scanner` or `trivy` for a useful scan.
+Missing scanners are skipped gracefully — the scripts print a `SKIP:` line for each absent tool and continue with whatever is installed. When no scanner runs at all, `auto-scan.sh` prints an `INCONCLUSIVE:` line and exits with code 3, and Step 5 must treat that repo as **Uncertain**. Install at least `osv-scanner` or `trivy` for a useful scan.
 
 ## Required Input
 
@@ -89,11 +91,11 @@ Keep this list compact — one bullet per advisory. Do not paraphrase beyond wha
 
 Before any manual grepping, run the bundled scanner scripts against every repo listed in `repos`. The scanners are the deterministic backbone of this skill: they hit real vulnerability databases (OSV, GitHub Advisory, vendor-specific) so verdicts do not rely on the LLM "knowing" a CVE.
 
-The skill ships these scripts under `skills/triage-security/scripts/`:
+The skill ships these scripts under `${CLAUDE_SKILL_DIR}/scripts/`:
 
 | Script | Purpose |
 |---|---|
-| `auto-scan.sh <repo>` | Orchestrator — runs every available scanner and emits one section per scanner |
+| `auto-scan.sh <repo> [scanners] [severity]` | Orchestrator — runs every available scanner, emits one section per scanner and ends with a `scanners run:` line, or `INCONCLUSIVE:` when none ran |
 | `scan-osv.sh <repo>` | OSV-Scanner (Google) — broad coverage, no auth, recommended default |
 | `scan-trivy.sh <repo>` | Trivy filesystem scan — vulns, IaC misconfig, secrets |
 | `scan-npm-audit.sh <repo>` | `npm audit` for every `package-lock.json` in the tree (declared deps) |
@@ -101,32 +103,33 @@ The skill ships these scripts under `skills/triage-security/scripts/`:
 | `scan-installed-pip.sh <repo-or-venv>` | Audit actually-installed packages in any virtualenv found under the path; catches lockfile drift and ad-hoc `pip install` |
 | `scan-installed-npm.sh <repo>` | `npm audit` against `node_modules` plus the installed tree from `npm ls --all`; catches drift between lockfile and what's on disk |
 | `scan-snyk.sh <repo>` | Snyk — only runs when `SNYK_TOKEN` is set or `snyk auth` was done |
-| `scan-docker-image.sh <image-ref>` | Trivy image scan; useful when the advisory targets runtime layers (CPython, libc, OpenSSL, Postgres) that source-tree scanners can't see |
-| `check-cve.sh <CVE-ID> <repo>` | Targeted check when the advisory names one specific CVE |
+| `scan-docker-image.sh <image-ref> [severity]` | Trivy image scan; useful when the advisory targets runtime layers (CPython, libc, OpenSSL, Postgres) that source-tree scanners can't see |
+| `check-cve.sh <CVE-ID> <repo> [scanners] [severity]` | Targeted check when the advisory names one specific CVE |
 
 Manifests show what's *declared*; installed-package scanners show what's actually loadable at runtime. Run both — drift is the common reason a "Not affected" verdict turns out to be wrong.
 
 For each repo:
 
 ```bash
-bash <plugin>/skills/triage-security/scripts/auto-scan.sh <repo-path>
+bash "${CLAUDE_SKILL_DIR}/scripts/auto-scan.sh" <repo-path>
 ```
 
-If `security.scanners.enabled` selects a subset, pass it as the second argument:
+If `security.scanners.enabled` selects a subset, pass it comma-separated as the second argument. If `security.scanners.severity` is set, pass it as the third argument (use `auto` as the second when no subset is selected):
 
 ```bash
-bash <plugin>/skills/triage-security/scripts/auto-scan.sh <repo-path> osv,trivy
+bash "${CLAUDE_SKILL_DIR}/scripts/auto-scan.sh" <repo-path> osv,trivy
+bash "${CLAUDE_SKILL_DIR}/scripts/auto-scan.sh" <repo-path> auto low
 ```
 
-When the advisory targets a runtime layer (e.g. "CPython 3.11.x prior to 3.11.10", "OpenSSL", "Postgres 16.x"), also scan the relevant container image — `scan-docker-image.sh` is intentionally separate from `auto-scan.sh` because it takes an image reference, not a repo path:
+When the advisory targets a runtime layer (e.g. "CPython 3.11.x prior to 3.11.10", "OpenSSL", "Postgres 16.x"), also scan the relevant container image — `scan-docker-image.sh` is intentionally separate from `auto-scan.sh` because it takes an image reference, not a repo path. It takes the same optional severity:
 
 ```bash
-bash <plugin>/skills/triage-security/scripts/scan-docker-image.sh postgres:16.13
+bash "${CLAUDE_SKILL_DIR}/scripts/scan-docker-image.sh" postgres:16.13
 ```
 
-Each scanner skips silently when its CLI is missing — never abort the workflow because a tool isn't installed; just record which scanners ran. If `security.scanners.auto_scan` is `false`, skip this step and rely on the manual evidence pass below.
+Scanners whose CLI is missing are skipped — never abort the workflow because a tool isn't installed. Record which scanners ran from the final `scanners run:` line. `auto-scan.sh` exits 0 when at least one scanner ran, 2 when the repo path does not exist and 3 when no scanner ran; both 2 and 3 print an `INCONCLUSIVE:` line and mean that repo has no scanner evidence. `check-cve.sh` uses the same exit codes. A `SKIP:` from `scan-docker-image.sh` means the image was not scanned. If `security.scanners.auto_scan` is `false`, skip this step and rely on the manual evidence pass below.
 
-Capture each scanner's output verbatim. When the advisory names a specific CVE, prefer `check-cve.sh <CVE-ID> <repo-path>` for a focused yes/no signal.
+Capture each scanner's output verbatim. When the advisory names a specific CVE, prefer `bash "${CLAUDE_SKILL_DIR}/scripts/check-cve.sh" <CVE-ID> <repo-path>` for a focused yes/no signal.
 
 ### Step 4 — Manual evidence pass (fill the gaps scanners miss)
 
@@ -142,7 +145,7 @@ Scanners cover dependency CVEs well but miss runtime versions, IaC, and vendor b
 
 Use `Grep` for package names and `Read` for version pins. Record: repo, file path, pinned version, whether it satisfies the advisory's "safe" range. If neither the scanner output nor the manifests reference the advisory's technology in any repo, mark **Not applicable** — but only after scanning each repo, not from a config shortcut.
 
-If a repo path does not exist on disk, note it but do not fail the run. Honour any exclusions stated in `security.custom_input` (e.g. "Vercel not in use") but still record the check in the draft so reviewers can see the diligence.
+If a repo path does not exist on disk (`auto-scan.sh` prints `INCONCLUSIVE:` and exits 2), note it but do not fail the run. Honour any exclusions stated in `security.custom_input` (e.g. "Vercel not in use") but still record the check in the draft so reviewers can see the diligence.
 
 ### Step 5 — Classify each advisory
 
@@ -151,7 +154,7 @@ For every advisory produce one verdict:
 - **Not affected** — stack match but evidence shows we are on a safe version, or the vendor is explicitly excluded in `security.custom_input`.
 - **Affected — action required** — evidence shows we use an affected version, or the advisory is a breach touching a vendor we rely on.
 - **Affected — monitoring** — we use the tech but the advisory is low-severity / awaiting patch / mitigation already applied.
-- **Uncertain** — scan was inconclusive. Do not guess; list the uncertainty in the draft.
+- **Uncertain** — scan was inconclusive. This includes every repo where `auto-scan.sh` or `check-cve.sh` printed `INCONCLUSIVE:` (no scanner ran, or the repo path is missing): with no scanner evidence the verdict is **Uncertain**, never **Not affected**. Do not guess; list the uncertainty in the draft.
 
 When scanner output and manual evidence agree, state the verdict with high confidence. When they disagree (e.g. `npm audit` flags a dep but the lockfile shows a patched version), prefer the manifest evidence and note the disagreement in the user-only report.
 
@@ -221,7 +224,7 @@ Return a structured summary to the user that covers everything — including the
 
 ## Safety Rules
 
-- Never claim "Not affected" for an advisory without scanning every repo in `repos`. Uncertain scans go under **Uncertain**, not **Not affected**.
+- Never claim "Not affected" for an advisory without scanning every repo in `repos`. A scan that printed `INCONCLUSIVE:` does not count as scanned. Uncertain scans go under **Uncertain**, not **Not affected**.
 - Never put Uncertain or Not-affected items into the Slack draft. They belong only in the end-of-run user report.
 - Never rotate credentials, edit lockfiles, or run package upgrades from this skill. Remediation happens via `create-ticket` → `start-task` → `finish-task`.
 - Never post directly to Slack unless `security.draft_only` is `false` and an explicit per-run authorisation is given.
@@ -243,7 +246,7 @@ Security triage — <date>
 - Tickets created: <PROJ-###, PROJ-###>
 - Slack: draft <id> in <#channel>[, threaded on <source ts>] | posted to <#channel>
 - Scanned repos: <list>
-- Scanners run: <e.g. osv, trivy, npm-audit | "none — manual evidence only">
+- Scanners run: <e.g. osv, trivy, npm-audit | "none — INCONCLUSIVE" | "off — manual evidence only">
 - Skipped repos: <list or "none">
 
 ### For you only (not in Slack)
