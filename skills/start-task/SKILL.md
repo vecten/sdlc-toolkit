@@ -15,7 +15,7 @@ This skill reads `pm_tool` from config. Currently supported: `linear`.
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `bootstrap-config` first.
+Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 

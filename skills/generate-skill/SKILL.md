@@ -5,6 +5,7 @@ description: >
   proper structure, and consistency with existing skills. Use when the user
   says "create skill", "new skill", "generate skill", "add a skill to
   sdlc-toolkit", or wants to turn a workflow into a reusable skill.
+disable-model-invocation: true
 ---
 
 # Generate Skill
@@ -80,7 +81,7 @@ description: >
 ## Config dependency
 
 Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing,
-tell the user to run `bootstrap-config` first.
+tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 

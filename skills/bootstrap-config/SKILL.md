@@ -3,9 +3,7 @@ name: bootstrap-config
 description: >
   Auto-generate or update the skills-config.yaml file for the current workspace.
   Scans repos, resolves PM tool and Slack IDs, asks structured questions for gaps.
-  Use when the user says "bootstrap config", "setup skills config",
-  "update skills config", "initialize workspace", or when any other skill
-  detects that skills-config.yaml is missing.
+disable-model-invocation: true
 ---
 
 # Bootstrap Config
