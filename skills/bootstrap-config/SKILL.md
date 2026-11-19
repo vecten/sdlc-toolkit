@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # Bootstrap Config
 
-Generate or update the `skills-config.yaml` that all sdlc-toolkit skills depend on. The config lives at `<workspace>/.cursor/skills-config.yaml`.
+Generate or update the `skills-config.yaml` that all sdlc-toolkit skills depend on. A new config is written to `<workspace>/.cursor/skills-config.yaml`; the skills also find one in `.claude/` or the workspace root.
 
 ## Guardrails
 
@@ -21,9 +21,9 @@ Generate or update the `skills-config.yaml` that all sdlc-toolkit skills depend 
 
 ### Step 1 — Check for existing config
 
-Look for `skills-config.yaml` in the workspace `.cursor/` directory.
+Look for an existing `skills-config.yaml` the way the other skills do: `.cursor/`, then `.claude/`, then the workspace root. If more than one exists and they differ, name both and ask which to keep.
 
-- If found, read it and enter **update mode** (Step 6).
+- If found, read it and enter **update mode** (Step 7).
 - If not found, enter **create mode** (Step 2).
 
 Also read the example config from `references/skills-config-example.yaml` in this plugin to understand the full schema.
@@ -70,7 +70,7 @@ Cache all resolved IDs.
 If `pm_tool` is `jira`, use Atlassian MCP tools to populate the `jira` section:
 
 1. `getAccessibleAtlassianResources` — present available Atlassian sites and ask user to confirm the instance URL.
-2. `getVisibleJiraProjects` — for the selected site, present projects and ask user to pick the default project key.
+2. List the Jira projects visible on the selected site (`getVisibleJiraProjects`; if the Atlassian MCP does not offer it, find the project-listing operation with `discover`), and ask the user to pick the default project key.
 3. Ask for default priority (e.g., "Medium", "High").
 4. Ask for any custom input (board URL, workflow-specific statuses, custom fields).
 
@@ -147,7 +147,7 @@ Never change fields that already have non-null values unless the user explicitly
 
 ### Step 8 — Write the config
 
-Write the final YAML to `<workspace>/.cursor/skills-config.yaml`.
+Write the final YAML back to the file found in Step 1, or to `<workspace>/.cursor/skills-config.yaml` for a new config.
 
 After writing, also update the commit-message rule if a rule template exists:
 - Look for `.cursor/rules/commit-message-task-id-prefix.mdc`.

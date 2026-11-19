@@ -3,27 +3,47 @@
 # and emit unified, section-headed output for the triage-security skill.
 #
 # Usage:
-#   auto-scan.sh <repo-path> [scanners]
+#   auto-scan.sh <repo-path> [scanners] [severity]
 #
 #   repo-path  Path to the repo to scan (absolute or relative to CWD).
 #   scanners   Optional comma-separated list selecting a subset:
-#                osv,trivy,npm-audit,pip-audit,snyk
+#                osv,trivy,npm-audit,pip-audit,snyk,installed-pip,installed-npm
 #              Defaults to "auto" — runs every scanner whose CLI is installed.
+#   severity   Optional minimum severity: low, medium, high or critical.
+#              Defaults to "high". Passed to trivy and snyk; osv-scanner,
+#              pip-audit and npm audit have no severity filter and report
+#              every severity.
 #
 # Behavior:
 #   - Each scanner is best-effort: missing CLIs are reported and skipped.
 #     A non-installed scanner is not an error; the script continues.
+#   - A scanner counts as run only when its wrapper did more than print
+#     SKIP lines. The last line lists the scanners that ran.
 #   - Output is plain text with one "=== <scanner> ===" section per run,
 #     so the calling skill can parse it without JSON tooling.
-#   - Exit code is 0 unless the repo path is invalid or no scanner ran.
+#
+# Exit codes:
+#   0  at least one scanner ran (read the output for findings)
+#   1  usage error (missing repo path or unknown severity)
+#   2  INCONCLUSIVE: the repo path does not exist
+#   3  INCONCLUSIVE: no scanner ran (none installed, or nothing to scan)
 
 set -uo pipefail
 
-REPO_PATH="${1:?Usage: $0 <repo-path> [scanners]}"
+REPO_PATH="${1:?Usage: $0 <repo-path> [scanners] [severity]}"
 SELECTION="${2:-auto}"
+SEVERITY="$(echo "${3:-high}" | tr '[:upper:]' '[:lower:]')"
+
+case "${SEVERITY}" in
+  low|medium|high|critical) ;;
+  *)
+    echo "ERROR: severity must be low, medium, high or critical (got: ${SEVERITY})" >&2
+    exit 1
+    ;;
+esac
 
 if [ ! -d "${REPO_PATH}" ]; then
-  echo "ERROR: repo path does not exist: ${REPO_PATH}" >&2
+  echo "INCONCLUSIVE: repo path does not exist: ${REPO_PATH}"
   exit 2
 fi
 
@@ -43,6 +63,12 @@ is_allowed() {
   return 1
 }
 
+# A wrapper skipped when it printed SKIP lines and nothing else.
+skipped() {
+  printf '%s\n' "$1" | grep -q '^SKIP:' || return 1
+  ! printf '%s\n' "$1" | grep -v '^SKIP:' | grep -q '[^[:space:]]'
+}
+
 if [ "${SELECTION}" = "auto" ]; then
   SELECTED=("${ALLOWED_SCANNERS[@]}")
 else
@@ -51,9 +77,10 @@ fi
 
 echo "auto-scan target: ${REPO_PATH}"
 echo "scanners requested: ${SELECTED[*]}"
+echo "minimum severity: ${SEVERITY}"
 echo
 
-RAN_ANY=0
+RAN=""
 for scanner in "${SELECTED[@]}"; do
   if ! is_allowed "${scanner}"; then
     echo "=== ${scanner} ==="
@@ -69,12 +96,14 @@ for scanner in "${SELECTED[@]}"; do
     continue
   fi
   echo "=== ${scanner} ==="
-  "${wrapper}" "${REPO_PATH}" || true
-  RAN_ANY=1
+  out="$("${wrapper}" "${REPO_PATH}" "${SEVERITY}" 2>&1)"
+  printf '%s\n' "${out}"
+  skipped "${out}" || RAN="${RAN:+${RAN} }${scanner}"
   echo
 done
 
-if [ "${RAN_ANY}" -eq 0 ]; then
-  echo "WARN: no scanner ran. Run scripts/install-deps.sh to install scanners." >&2
-  exit 1
+if [ -z "${RAN}" ]; then
+  echo "INCONCLUSIVE: no scanner ran against ${REPO_PATH}. Run install-deps.sh to see which scanners are missing."
+  exit 3
 fi
+echo "scanners run: ${RAN}"

@@ -6,12 +6,22 @@
 #
 # Usage: scan-docker-image.sh <image-ref> [severity]
 #   image-ref  e.g. "myorg/api:1.2.3", "postgres:16.13", or a local image ID
-#   severity   default: HIGH,CRITICAL
+#   severity   low, medium, high or critical (minimum level, as in
+#              auto-scan.sh), or a Trivy list such as "HIGH,CRITICAL".
+#              Default: high.
 
 set -uo pipefail
 
 IMAGE_REF="${1:?Usage: $0 <image-ref> [severity]}"
-SEVERITY="${2:-HIGH,CRITICAL}"
+SEVERITY="${2:-high}"
+
+# Map a minimum level to Trivy's list; any other value goes to Trivy as given.
+case "$(echo "${SEVERITY}" | tr '[:upper:]' '[:lower:]')" in
+  critical) SEVERITY="CRITICAL" ;;
+  high)     SEVERITY="HIGH,CRITICAL" ;;
+  medium)   SEVERITY="MEDIUM,HIGH,CRITICAL" ;;
+  low)      SEVERITY="UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL" ;;
+esac
 
 # Cheap input validation: reject anything that isn't a plausible image ref.
 # Allowed: lowercase, digits, dot, dash, underscore, slash, colon, @, plus.

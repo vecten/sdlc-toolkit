@@ -5,7 +5,7 @@ description: >
   cause, propose a mitigation plan, create a ticket in the configured PM tool,
   then hand off implementation start to the start-task skill and wrap-up to the
   finish-task skill when appropriate. Use when the user says "debug sentry",
-  "sentry", "fix sentry issue", or provides a Sentry issue link.
+  "fix sentry issue", or provides a Sentry issue link.
 ---
 
 # Debug Sentry
@@ -16,7 +16,7 @@ This skill reads `pm_tool` from config. Currently supported: `linear`.
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
+Read `skills-config.yaml` before acting. Look in `.cursor/`, then `.claude/`, then the folder itself, starting from the current folder and moving up to the workspace root; use the first file found. If two copies differ, use the first and name both in one line. Every `custom_input` block applies and overrides this skill's defaults. If no file exists, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 

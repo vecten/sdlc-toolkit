@@ -23,7 +23,7 @@ Primary outcomes:
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` if available. This skill works without config but benefits from it.
+Read `skills-config.yaml` if available (look in `.cursor/`, then `.claude/`, then the folder itself, from the current folder up to the workspace root). This skill works without config but benefits from it.
 
 Optional config keys:
 
