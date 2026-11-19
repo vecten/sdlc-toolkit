@@ -1,8 +1,9 @@
 ---
 name: start-task
 description: >
-  Start working on a ticket by fetching its details from the configured PM
-  tool, moving it to In Progress, checking out a fresh dev branch, and
+  Start working on a ticket by fetching its details and comments from the
+  configured PM tool, moving it to In Progress, preparing the repo (one
+  worktree per ticket when configured, otherwise a fresh dev branch), and
   entering Plan mode. Use when the user says "start task", "begin task",
   "pick up ticket", "start working on", or provides a ticket URL/ID.
 ---
@@ -21,6 +22,8 @@ Required config keys:
 
 - `repos` — to detect current repo from CWD
 - `git.branches.<repo>.dev` — the dev branch for this repo
+- `git.worktrees_dir` — optional; when set, each ticket gets its own worktree (see Step 4)
+- `git.branch_prefixes` — for the branch name in worktree mode
 - `testing.runner`, `testing.prefer_makefile` — for validation defaults in plan output
 - `testing.custom_input` — per-repo test/lint/migration commands
 
@@ -57,6 +60,8 @@ Extract and retain:
 - Blocking / blocked-by relations
 - Acceptance criteria (if present in the description)
 
+Then read the issue's comments with `list_comments`: `get_issue` does not include the discussion, and earlier analysis, decisions and open questions often live there.
+
 If the fetch fails, stop and tell the user.
 
 ### Step 3 — Move the issue to "In Progress"
@@ -70,7 +75,18 @@ If no clear "In Progress" status exists, tell the user which statuses are availa
 
 ### Step 4 — Prepare the local repository
 
-Detect current repo from CWD by matching against `repos.<name>.path`. Look up the dev branch from `git.branches.<repo>.dev`.
+Detect current repo from CWD by matching against `repos.<name>.path`. If CWD is not inside a configured repo (for example the root of a multi-repo workspace), ask which repos the ticket touches. Look up each repo's dev branch from `git.branches.<repo>.dev`.
+
+**Worktree mode**, when `git.worktrees_dir` is set (a folder relative to the workspace root, e.g. `.worktrees`): give the ticket its own worktree in each repo it touches and leave the main checkout alone.
+
+```bash
+git -C <repo-path> fetch origin <DEV_BRANCH>
+git -C <repo-path> worktree add -b <prefix>/<ticket-id>-<short-slug> <workspace>/<worktrees_dir>/<ticket-id>-<repo> origin/<DEV_BRANCH>
+```
+
+Write the worktree path as an absolute path: `git -C` reads a relative one from inside the repo. Choose the prefix from `git.branch_prefixes` the way finish-task does (feature, bugfix, hotfix; ask if unclear). If that worktree already exists, reuse it. Do all work for this ticket in that folder and name its path in the summary. The session itself stays where it is.
+
+**Default mode**, when `git.worktrees_dir` is not set:
 
 1. Check for uncommitted changes:
 
@@ -100,6 +116,7 @@ Then present a structured summary combining the ticket details, config context, 
 **Priority:** <priority>
 **Labels:** <labels>
 **Status:** moved to In Progress
+**Worktree:** <path, or "main checkout">
 
 ### Description
 <ticket description>
@@ -127,7 +144,8 @@ After presenting this summary, ask the user to confirm the implementation approa
 - Never make code changes before the user confirms the plan.
 - Never commit or push anything during this workflow.
 - If the working tree has uncommitted changes, ask the user before discarding or stashing them.
-- Do not create a feature branch during this step — that happens later when work begins.
+- In default mode, do not create a feature branch during this step; finish-task creates it. Worktree mode creates it together with the worktree.
+- In worktree mode, never switch branches in the main checkout.
 - Validation defaults are read from config — do not hardcode repo-specific commands.
 - If runner is `docker` and Docker is not running when validation needs to happen, stop and ask the user to enable it manually.
 

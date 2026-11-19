@@ -69,6 +69,8 @@ If the correct prefix is unclear, ask the user before creating the branch.
 
 ## Workflow
 
+Work in the right folder first. If start-task created a worktree for this ticket (`<workspace>/<worktrees_dir>/<ticket-id>-<repo>`), run every git command there with `git -C <path>`. If CWD is not inside a configured repo, ask which repo the change is in.
+
 Run the git inspection commands in parallel first:
 
 ```bash
@@ -114,11 +116,11 @@ Read `testing.runner` from config:
 - **host**: run commands directly on the host machine.
 - **ci-only**: skip local verification entirely; note in the PR that verification is deferred to CI.
 
-Read `testing.custom_input` for the current repo's specific commands (e.g., test command, lint command, migration command).
+Read `testing.custom_input` for the current repo's specific commands (e.g., test command, lint command, migration command). Run every test and lint command listed there for the repos the change touches, not just one, and show the last lines of each command's output.
 
 If runner is `docker` and Docker is not running, stop and ask the user to enable it manually.
 
-Reflect the actual verification status in the commit and PR summary.
+A check that did not run (skipped, blocked, or `ci-only`) is reported as not run, never as passed. Reflect the actual verification status in the commit and PR summary.
 
 ### Step 4: Draft the commit message
 
@@ -173,7 +175,10 @@ Default PR body:
 
 In the Testing section:
 - Reflect actual verification based on `testing.runner`.
+- Tick a box only for a check that ran and passed. List the others unticked, with the reason.
 - If verification was blocked (Docker not running, ci-only), say that explicitly.
+
+Open the PR ready for review. Use `--draft` only when there is a named blocker (say what it is in the PR body) or when `git.custom_input` asks for drafts.
 
 The PR targets the repo's dev branch from `git.branches.<repo>.dev`, not the repository's default branch on GitHub. Target another branch only when the user says so (for example, a hotfix straight to the release target).
 
@@ -220,7 +225,21 @@ Testing:
 
 Read `slack.custom_input` for any overrides.
 
-If Slack access is not available, stop after PR creation and tell the user.
+If Slack access is not available, skip this step and tell the user.
+
+### Step 10: Hotfix follow-up (conditional)
+
+If the PR targets the release target instead of the dev branch (a hotfix), offer the matching PR into dev so the fix is not lost at the next release: cherry-pick the commit with `-x` onto a new branch from `origin/<DEV_BRANCH>` in a temporary worktree, push it, and open a PR into the dev branch.
+
+### Step 11: Watch CI (offer)
+
+Offer to watch the PR's checks and report the result:
+
+```bash
+gh pr checks <pr-number> --repo <owner>/<name> --watch
+```
+
+If a check fails, show the failing job and the end of its log (`gh run view <run-id> --repo <owner>/<name> --log-failed`).
 
 ## Response To User
 
@@ -232,6 +251,9 @@ When finished, report:
 - PR URL if created
 - whether the PM issue was moved to review
 - whether the Slack message was sent
+- which checks ran locally, and which did not run and why
+- the hotfix PR into dev, if opened
+- the CI result, if watched
 
 If you could not finish one of the steps, say exactly where the workflow stopped and why.
 
