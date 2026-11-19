@@ -21,7 +21,7 @@ Automates a full release cut flow:
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `bootstrap-config` first.
+Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 

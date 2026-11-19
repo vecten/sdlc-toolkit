@@ -1,0 +1,27 @@
+name: Validate plugin
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Pinned: validating a marketplace and its plugin in one folder needs 2.1.289 or later.
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code@2.1.311
+
+      # Local checks only: no model calls, no API key, no cost.
+      - name: Validate marketplace and plugin
+        run: claude plugin validate . --strict

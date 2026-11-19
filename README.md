@@ -22,8 +22,10 @@ Add this repository as a plugin source in Cursor's plugin settings, then install
 **First time?** Run the bootstrap skill to generate your project config:
 
 ```
-> bootstrap config
+/sdlc-toolkit:bootstrap-config
 ```
+
+The setup skills (`bootstrap-config`, `migrate-cursor`, `generate-skill`) run only when you type them; Claude does not pick them automatically.
 
 This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and writes `.cursor/skills-config.yaml` — the single config file all skills read from.
 
@@ -99,7 +101,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 
 | Skill | Example phrases |
 |-------|----------------|
-| `bootstrap-config` | `bootstrap config`, `setup skills config`, `initialize workspace` |
+| `bootstrap-config` | typed only: `/sdlc-toolkit:bootstrap-config` |
 | `analyse-task` | `analyse task DST-322`, `analyze ticket ENG-123`, `plan task`, `review ticket`, `what does this ticket need` |
 | `start-task` | `start task ENG-123`, `begin task ENG-456`, `pick up ticket ENG-789` |
 | `finish-task` | `finish task ENG-123`, `wrap up ticket ENG-123`, `prepare branch and PR for ENG-123` |
@@ -110,8 +112,8 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | `triage-security` | `triage security`, `security advisory`, `security news`, `check security brief`, `any security issues today` |
 | `manage-priorities` | `manage top priorities`, `update priorities board`, `bootstrap priorities tracker` |
 | `manage-timeline` | `manage timeline`, `update timeline`, `check timeline`, `are we on track` |
-| `migrate-cursor` | `migrate cursor`, `migrate from cursor`, `import cursor config`, `export cursor skills`, `switch to claude code` |
-| `generate-skill` | `create a new skill`, `generate skill for this workflow`, `add a skill to sdlc-toolkit` |
+| `migrate-cursor` | typed only: `/sdlc-toolkit:migrate-cursor` |
+| `generate-skill` | typed only: `/sdlc-toolkit:generate-skill` |
 
 ## References
 

@@ -15,7 +15,7 @@ This skill reads `pm_tool` from config to determine which PM integration to use.
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If the file is missing, tell the user to run `bootstrap-config` first.
+Read `<workspace>/.cursor/skills-config.yaml` before acting. If the file is missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 

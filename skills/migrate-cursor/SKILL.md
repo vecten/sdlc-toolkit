@@ -5,6 +5,7 @@ description: >
   Claude Code. Two-phase workflow: export in Cursor, import in Claude Code.
   Use when the user says "migrate cursor", "migrate from cursor",
   "import cursor config", "export cursor skills", or "switch to claude code".
+disable-model-invocation: true
 ---
 
 # Migrate Cursor
