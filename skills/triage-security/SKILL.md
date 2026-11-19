@@ -17,7 +17,7 @@ This skill reads `pm_tool` from config for optional ticket hand-off. Currently s
 
 ## Config dependency
 
-Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` (in Cursor: `/bootstrap-config`) first.
+Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell the user to run `/sdlc-toolkit:bootstrap-config` first.
 
 Required config keys:
 
@@ -71,7 +71,7 @@ Parse the user input:
 - **Slack permalink**: extract `channel_id` from the URL path and `message_ts` from the `p<digits>` segment (insert a `.` six digits from the end, e.g. `p1776747784617779` → `1776747784.617779`). Use `slack_read_thread` with those values.
 - **Pasted text**: skip Slack entirely; treat the text as the advisory body.
 - **CVE / vendor name only**: ask the user whether to search the security channel or pull from an external source.
-- **No input**: use `slack_read_channel` on `slack.channels.security_news_id` with `limit: 1` to fetch the latest brief. If the ID is missing, fall back to `slack_search_channels` with `slack.channels.security_news`, then tell the user to run `/sdlc-toolkit:bootstrap-config` (in Cursor: `/bootstrap-config`) to cache the ID.
+- **No input**: use `slack_read_channel` on `slack.channels.security_news_id` with `limit: 1` to fetch the latest brief. If the ID is missing, fall back to `slack_search_channels` with `slack.channels.security_news`, then tell the user to run `/sdlc-toolkit:bootstrap-config` to cache the ID.
 
 ### Step 2 — Extract advisories
 
