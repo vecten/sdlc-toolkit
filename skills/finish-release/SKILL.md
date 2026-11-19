@@ -1,19 +1,21 @@
 ---
 name: finish-release
 description: >
-  Wrap up a production release by updating tickets to Done in the configured
-  PM tool and drafting a client-facing release email. Use when the user says
-  "finish release", "close release", "release done", "post-release",
-  "release deployed", or asks to prepare a release email or mark released
-  tickets as done.
+  Wrap up a production release: show one table of the released tickets with
+  deploy status, open items and a proposed status, update only the tickets the
+  user confirms in the configured PM tool, and draft a client-facing release
+  email. Use when the user says "finish release", "close release", "release
+  done", "post-release", "release deployed", or asks to prepare a release
+  email or mark released tickets as done.
 ---
 
 # Finish Release
 
-Post-deployment workflow that runs after a release branch has been merged to production. Two goals:
+Post-deployment workflow that runs after a release PR has been merged to the release target. Three goals:
 
-1. Move all included tickets to **Done** in the configured PM tool.
-2. Draft a **client-facing release email** (if enabled in config).
+1. Show **one table** of the released tickets: deploy status, open items, and a proposed status.
+2. Update the tickets the user **confirms** in the configured PM tool. Nothing changes before that.
+3. Draft a **client-facing release email** (if enabled in config).
 
 This skill reads `pm_tool` from config. Currently supported: `linear`.
 
@@ -23,8 +25,8 @@ Read `<workspace>/.cursor/skills-config.yaml` before acting. If missing, tell th
 
 Required config keys:
 
-- `repos` — to detect current repo from CWD
-- `git.branches.<repo>.release_target` — target branch for this repo
+- `repos` — to detect current repo from CWD, and `repos.<repo>.remote` for the GitHub `owner/name`
+- `git.branches.<repo>.dev` and `git.branches.<repo>.release_target` — branches for this repo
 - `linear.ticket_prefix` — for extracting ticket keys from commits
 - `release_email.enabled` — whether to draft a release email
 - `release_email.greeting`, `release_email.sign_off`
@@ -32,20 +34,20 @@ Required config keys:
 
 ## Prerequisites
 
-- Current directory is a git repository.
 - Remote is `origin`.
+- GitHub CLI (`gh`) is available.
 - PM tool MCP is available for ticket lookup and status updates.
-- The release has already been merged to the target branch.
+- The release PR has been merged to the target branch.
 
 ## Inputs
 
 Collect release context using these sources (in priority order):
 
-1. **Same-thread context** — if the `create-release` skill ran earlier in this conversation, reuse the release branch name, PR URL, target branch, and ticket list.
-2. **User-provided PR URL or number** — extract ticket IDs from the PR body and commits.
-3. **User-provided release branch name** — derive the info from git.
+1. **Same-thread context** — if the `create-release` skill ran earlier in this conversation, reuse the release PR URLs, target branches, and ticket list.
+2. **User-provided PR URLs or numbers** — one release PR per repo.
+3. **User-provided release branch name** — find its PR with `gh pr list --repo <owner>/<name> --head <branch> --state all`.
 
-If none of these are available, ask the user for the release branch name or PR URL.
+If none of these are available, ask the user for the release PR URLs.
 
 ## Branch rules
 
@@ -57,47 +59,69 @@ Read from config:
 
 ## Workflow
 
-### 1) Determine release context
+### 1) Collect the released commits and tickets
 
-Set target branch from config. Gather the list of commits included:
-
-```bash
-git log <TARGET_BRANCH>..HEAD --oneline --no-decorate
-```
-
-Or, if the release is already merged and you have the PR number:
+For each release PR:
 
 ```bash
-gh pr view <PR_NUMBER> --json body,mergeCommit,commits
+gh pr view <PR_NUMBER> --repo <owner>/<name> --json number,title,body,state,mergedAt,baseRefName,commits,url
 ```
 
-Extract all ticket keys using `linear.ticket_prefix` from config (e.g., `<PREFIX>-\d+`).
+Take the commit list from this output. Do not use `git log <target>..HEAD`: after the merge it comes back empty.
 
-### 2) Fetch ticket details from the PM tool
+If a PR is not merged yet, say so; its tickets get the deploy status "not merged".
 
-For each extracted ticket key:
+Extract all ticket keys from the PR title, body and commit messages using `linear.ticket_prefix` (e.g., `<PREFIX>-\d+`).
 
-1. Call `get_issue` (Linear) or the equivalent PM tool API with the ticket ID.
-2. Collect: title, description, status, priority, assignee, labels, URL.
+### 2) Check deploy status
 
-Store this data for both the status update step and the email composition step.
+For each repo, look for a deploy after the merge: a workflow run on the target branch, or whatever the user already said ("deployed", "live").
 
-### 3) Update tickets to Done
+```bash
+gh run list --repo <owner>/<name> --branch <TARGET_BRANCH> --limit 5 --json name,status,conclusion,createdAt,url
+```
 
-For each ticket that is not already in a completed/done state:
+Use one of: `deployed` (with the run URL or the user's word), `merged, deploy not confirmed`, `not merged`.
+
+### 3) Fetch ticket details and open items
+
+For each ticket key:
+
+1. Call `get_issue` (Linear) or the equivalent PM tool API: title, description, status, priority, assignee, labels, URL.
+2. Read its comments as well.
+3. Note the **open items**: unchecked acceptance criteria, follow-ups the ticket or its comments say are still owed, and manual steps after deploy (migrations, config changes, checks someone must run).
+
+Store this data for the table and for the email.
+
+### 4) Show the table and wait
+
+Present one table and change nothing yet:
+
+| Ticket | Title | Repo / PR | Deploy status | Current status | Open items | Proposed status |
+|---|---|---|---|---|---|---|
+
+Proposed status:
+
+- **Done**: deployed and no open items.
+- **Keep open**: name what it waits on (a follow-up, a check after deploy, a client confirmation).
+- **Reopen**: the merge automation already moved it to a completed status, but open items remain. Propose the status it should go back to.
+
+Ask the user to confirm the table or change any row. Put the evidence (run URLs, open items) in the table and in the final report. Post it on tickets only when the user asks.
+
+### 5) Apply the confirmed statuses
+
+For each confirmed change:
 
 1. Call `list_issue_statuses` for the ticket's team (cache per team — call once per unique team).
-2. Find the status named **Done** (or the closest completed-type status).
-3. Call `save_issue` with `id` and `state` set to the Done status.
-4. Track which tickets were updated and which were already done.
+2. Find the target status by name (Done, or the one the user named). If no clear match exists, report the available statuses instead of guessing.
+3. Call `save_issue` with `id` and `state`.
+4. Track what changed and what was left as is.
 
-If no clear "Done" status exists for a team, report the available statuses instead of guessing.
-
-### 4) Compose the release email (conditional)
+### 6) Compose the release email (conditional)
 
 Skip this step if `release_email.enabled` is `false`.
 
-Build a release email focused on client-facing impact. Before writing, if any ticket's user impact is unclear from the ticket data alone, ask the user for clarification on those specific tickets.
+Build a release email focused on client-facing impact. Leave out tickets that were not deployed. Before writing, if any ticket's user impact is unclear from the ticket data alone, ask the user for clarification on those specific tickets.
 
 Read `release_email.custom_input` for:
 - System display names (e.g., which friendly name to use for this repo)
@@ -131,18 +155,32 @@ We've deployed the latest updates to <system name from custom_input>. Here's a s
 - Group related changes under a single bullet when they address the same feature area.
 - If a change is purely internal (infra, refactoring, CI) with no user-facing impact, omit it unless `custom_input` says to include internal changes.
 
-### 5) Present the email to the user
+### 7) Present the email to the user
 
 Output the full email text for the user to review, copy, and send.
 
 Ask if any adjustments are needed (tone, missing context, grouping).
 
+## After the release: syncing dev with the target
+
+A back-merge (target into dev) is needed only when the target holds changes dev lacks, for example a hotfix merged straight to the target. A plain diff cannot tell: it also lists the work still waiting on dev. Check whether merging the target into dev would change dev (git 2.38 or later):
+
+```bash
+git fetch origin
+git merge-tree --write-tree origin/<DEV_BRANCH> origin/<TARGET_BRANCH> | head -1
+git rev-parse 'origin/<DEV_BRANCH>^{tree}'
+```
+
+If the two hashes match, no back-merge is needed. If they differ, or `merge-tree` reports conflicts, it is.
+
+If one is needed, never open the back-merge PR with the target branch as head. When the repo deletes merged branches automatically, merging that PR deletes the target branch. Cut a temporary branch from the target (e.g. `backmerge/YYYY-MM-DD`) and open the PR from it into dev.
+
 ## Final output
 
 When finished, report:
 
-- Number of tickets updated to Done (and list them)
-- Any tickets that were already Done or could not be updated (and why)
+- The confirmed table
+- Tickets whose status changed, and tickets left open (with what each waits on)
+- Any ticket that could not be updated, and why
 - The full email draft (if enabled)
 - Any tickets where you lacked context and made assumptions
-

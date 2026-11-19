@@ -38,8 +38,8 @@ This scans your workspace, discovers repos, resolves PM tool and Slack IDs, and 
 | `start-task` | Fetch a ticket's details, move it to In Progress, prepare the local repo on the correct dev branch, and enter Plan mode. |
 | `finish-task` | Stage relevant changes, verify (Docker/host/CI), commit, push, create a PR, move the issue to review, and notify Slack. |
 | `create-ticket` | Create a structured issue in the configured PM tool with config-driven defaults, cached IDs, and a standardized description template. |
-| `create-release` | Cut a release branch from dev, enrich notes with ticket metadata, create a PR, and notify Slack. |
-| `finish-release` | Move released tickets to Done and draft a client-facing release email. |
+| `create-release` | Cut a release PR: selected tickets cherry-picked onto a branch from the release target, or a full merge of dev. Asks which first, works in a temporary worktree, enriches notes with ticket metadata, and notifies Slack. |
+| `finish-release` | Show a table of released tickets (deploy status, open items, proposed status), update the ones you confirm, and draft a client-facing release email. |
 | `debug-sentry` | Investigate a Sentry issue, diagnose root cause, create a ticket, then hand off to `start-task` and `finish-task`. |
 | `triage-security` | Triage a security advisory (Slack brief, CVE, or pasted text) against the workspace stack, run bundled deterministic scanners (osv-scanner, trivy, npm audit, pip-audit, snyk, installed-pip/npm for runtime drift, and Docker image scans), draft a Slack response with affected/not-affected verdicts, and hand off remediations to `create-ticket`. |
 | `manage-priorities` | Manage a priorities tracker in the configured knowledge base with Table/Board views, status cards, and detail subpages. |
@@ -106,7 +106,7 @@ Each section includes a `custom_input` area for free-form, repo-specific instruc
 | `start-task` | `start task ENG-123`, `begin task ENG-456`, `pick up ticket ENG-789` |
 | `finish-task` | `finish task ENG-123`, `wrap up ticket ENG-123`, `prepare branch and PR for ENG-123` |
 | `create-ticket` | `create ticket`, `open ticket for this`, `log this request` |
-| `create-release` | `create release`, `cut release`, `prepare release` |
+| `create-release` | `create release`, `cut release`, `prepare release`, `release <ticket>` |
 | `finish-release` | `finish release`, `close release`, `release deployed` |
 | `debug-sentry` | `debug sentry <url>`, `fix sentry issue <url>`, `investigate this Sentry issue` |
 | `triage-security` | `triage security`, `security advisory`, `security news`, `check security brief`, `any security issues today` |
